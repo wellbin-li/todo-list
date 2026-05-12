@@ -333,9 +333,7 @@ function App() {
       <section className="main-column">
         <div className="title-block">
           <h1 className="app-title">
-            <span className="title-brand">TodoList</span>
-            <span className="title-divider" aria-hidden="true" />
-            <span className="title-subtitle">个人任务工作台</span>
+            <span className="title-main">TodoList-个人任务工作台</span>
             <span className="title-date">当前日期：{todayString()}</span>
           </h1>
           <div className="overview">
