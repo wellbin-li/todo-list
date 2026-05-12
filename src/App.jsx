@@ -13,6 +13,12 @@ const priorities = [
 ];
 
 const priorityMeta = Object.fromEntries(priorities.map((priority) => [priority.value, priority]));
+const priorityFilterOptions = [...priorities].sort((a, b) => b.rank - a.rank);
+
+const categoryOptions = (categories) => [
+  ...categories.map((category) => ({ value: category.id, label: category.name })),
+  { value: NO_CATEGORY_ID, label: '无分类' },
+];
 
 const defaultCategory = {
   id: INBOX_ID,
@@ -41,7 +47,7 @@ const createEmptyTodo = (categoryId = INBOX_ID) => ({
   description: '',
   categoryId,
   priority: 'low',
-  dueDate: '',
+  dueDate: todayString(),
   completed: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -197,6 +203,7 @@ function App() {
         categoryId: draftTodo.categoryId,
         title,
         description: draftTodo.description.trim(),
+        dueDate: draftTodo.dueDate || todayString(),
         updatedAt: new Date().toISOString(),
       },
       ...current,
@@ -367,33 +374,23 @@ function App() {
               value={draftTodo.description}
               onChange={(event) => setDraftTodo((current) => ({ ...current, description: event.target.value }))}
             />
-            <select
-              aria-label="任务分类"
+            <CustomSelect
+              ariaLabel="任务分类"
+              className={categoryColorClass(categories, draftTodo.categoryId)}
+              options={categoryOptions(categories)}
               value={draftTodo.categoryId}
-              onChange={(event) => setDraftTodo((current) => ({ ...current, categoryId: event.target.value }))}
-            >
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-              <option value={NO_CATEGORY_ID}>无分类</option>
-            </select>
-            <select
-              aria-label="优先级"
+              onChange={(nextValue) => setDraftTodo((current) => ({ ...current, categoryId: nextValue }))}
+            />
+            <CustomSelect
+              ariaLabel="优先级"
               className={`priority priority-${draftTodo.priority}`}
+              options={priorities}
               value={draftTodo.priority}
-              onChange={(event) => setDraftTodo((current) => ({ ...current, priority: event.target.value }))}
-            >
-              {priorities.map((priority) => (
-                <option key={priority.value} value={priority.value}>
-                  {priority.label}
-                </option>
-              ))}
-            </select>
+              onChange={(nextValue) => setDraftTodo((current) => ({ ...current, priority: nextValue }))}
+            />
             <DateField
               label="到期日期"
-              value={draftTodo.dueDate}
+              value={draftTodo.dueDate || todayString()}
               onChange={(nextDate) => setDraftTodo((current) => ({ ...current, dueDate: nextDate }))}
             />
             <button type="submit">新增</button>
@@ -428,41 +425,28 @@ function App() {
         <section className="filters-panel" aria-label="排序和筛选">
           <label>
             类别
-            <select
-              aria-label="按类别筛选"
+            <CustomSelect
+              ariaLabel="按类别筛选"
               className={`category-filter-select ${
                 categoryFilter === 'all' ? 'filter-neutral' : categoryColorClass(categories, categoryFilter)
               }`}
+              options={[{ value: 'all', label: '全部类别' }, ...categoryOptions(categories)]}
               value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-            >
-              <option value="all">全部类别</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-              <option value={NO_CATEGORY_ID}>无分类</option>
-            </select>
+              onChange={setCategoryFilter}
+            />
           </label>
 
           <label>
             优先级
-            <select
-              aria-label="按优先级筛选"
+            <CustomSelect
+              ariaLabel="按优先级筛选"
               className={`priority-filter-select ${
                 priorityFilter === 'all' ? 'filter-neutral' : `priority-${priorityFilter}`
               }`}
+              options={[{ value: 'all', label: '全部优先级' }, ...priorityFilterOptions]}
               value={priorityFilter}
-              onChange={(event) => setPriorityFilter(event.target.value)}
-            >
-              <option value="all">全部优先级</option>
-              {priorities.map((priority) => (
-                <option key={priority.value} value={priority.value}>
-                  {priority.label}
-                </option>
-              ))}
-            </select>
+              onChange={setPriorityFilter}
+            />
           </label>
         </section>
       </aside>
@@ -494,20 +478,13 @@ function TaskGroup({ label, todos, categories, emptyText, muted = false, updateT
                 onClick={(event) => event.stopPropagation()}
                 type="checkbox"
               />
-              <select
-                aria-label="编辑任务分类"
+              <CustomSelect
+                ariaLabel="编辑任务分类"
                 className={`task-category-select ${categoryColorClass(categories, todo.categoryId)}`}
+                options={categoryOptions(categories)}
                 value={todo.categoryId}
-                onChange={(event) => updateTodo(todo.id, { categoryId: event.target.value })}
-                onClick={(event) => event.stopPropagation()}
-              >
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-                <option value={NO_CATEGORY_ID}>无分类</option>
-              </select>
+                onChange={(nextValue) => updateTodo(todo.id, { categoryId: nextValue })}
+              />
               <div className="task-copy">
                 <input
                   aria-label="编辑任务标题"
@@ -525,19 +502,13 @@ function TaskGroup({ label, todos, categories, emptyText, muted = false, updateT
                   onClick={(event) => event.stopPropagation()}
                 />
               </div>
-              <select
-                aria-label="编辑优先级"
+              <CustomSelect
+                ariaLabel="编辑优先级"
                 className={`priority priority-${todo.priority}`}
+                options={priorities}
                 value={todo.priority}
-                onChange={(event) => updateTodo(todo.id, { priority: event.target.value })}
-                onClick={(event) => event.stopPropagation()}
-              >
-                {priorities.map((priority) => (
-                  <option key={priority.value} value={priority.value}>
-                    {priority.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(nextValue) => updateTodo(todo.id, { priority: nextValue })}
+              />
               <DateField
                 label="编辑到期日"
                 overdue={isOverdue(todo)}
@@ -594,6 +565,60 @@ function DateField({ label, value, onChange, overdue = false }) {
         onChange={(event) => onChange(event.target.value)}
       />
     </button>
+  );
+}
+
+function CustomSelect({ ariaLabel, className = '', options, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const selected = options.find((option) => option.value === value) ?? options[0];
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    function closeOnOutside(event) {
+      if (!rootRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener('pointerdown', closeOnOutside);
+    return () => window.removeEventListener('pointerdown', closeOnOutside);
+  }, [open]);
+
+  return (
+    <div className={`custom-select ${className} ${open ? 'open' : ''}`} ref={rootRef}>
+      <button
+        aria-expanded={open}
+        aria-label={ariaLabel}
+        className="custom-select-trigger"
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }}
+        type="button"
+      >
+        <span>{selected?.label}</span>
+      </button>
+      <div className="custom-select-menu" role="listbox">
+        {options.map((option) => (
+          <button
+            aria-selected={option.value === value}
+            className={option.value === value ? 'selected' : ''}
+            key={option.value}
+            onClick={(event) => {
+              event.stopPropagation();
+              onChange(option.value);
+              setOpen(false);
+            }}
+            role="option"
+            type="button"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
