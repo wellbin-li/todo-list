@@ -76,13 +76,46 @@ select {
   min-height: 40px;
 }
 
-.title-block h1 {
+.app-title {
+  align-items: center;
   color: #243244;
+  display: flex;
+  flex-wrap: wrap;
   font-size: 24px;
   font-weight: 850;
+  gap: 9px;
   letter-spacing: 0;
   line-height: 1.08;
   margin: 0;
+  min-width: 0;
+}
+
+.title-brand {
+  color: #1f2937;
+  font-weight: 900;
+}
+
+.title-divider {
+  background: linear-gradient(180deg, #a7b3c2, #d7dee8);
+  border-radius: 999px;
+  height: 24px;
+  width: 1px;
+}
+
+.title-subtitle {
+  color: #334155;
+  font-weight: 820;
+}
+
+.title-date {
+  background: #eef6f4;
+  border: 1px solid #c9e2dc;
+  border-radius: 999px;
+  color: #276b60;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 7px 10px;
   white-space: nowrap;
 }
 
