@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 const STORAGE_KEY = 'personal-todolist-state-v1';
 const INBOX_ID = 'inbox';
 const NO_CATEGORY_ID = '';
+const PUBLIC_APP_URL = 'https://wellbin-li.github.io/todo-list/';
+const IMPORT_HASH_PREFIX = '#todo-import=';
 
 const priorities = [
   { value: 'low', label: '低', rank: 1 },
@@ -129,8 +131,38 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const isImportingRef = useRef(window.location.hash.startsWith(IMPORT_HASH_PREFIX));
 
   useEffect(() => {
+    const rawImport = window.location.hash.startsWith(IMPORT_HASH_PREFIX)
+      ? decodeURIComponent(window.location.hash.slice(IMPORT_HASH_PREFIX.length))
+      : null;
+
+    if (rawImport) {
+      try {
+        JSON.parse(rawImport);
+        localStorage.setItem(STORAGE_KEY, rawImport);
+        window.history.replaceState(null, '', window.location.pathname);
+        window.location.reload();
+      } catch {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+
+      return;
+    }
+
+    const shouldMigrateToPublic = new URLSearchParams(window.location.search).get('migrateToPublic') === '1';
+    const isLocalDev = window.location.origin === 'http://127.0.0.1:5173';
+    const savedState = localStorage.getItem(STORAGE_KEY);
+
+    if (shouldMigrateToPublic && isLocalDev && savedState) {
+      window.location.href = `${PUBLIC_APP_URL}${IMPORT_HASH_PREFIX}${encodeURIComponent(savedState)}`;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isImportingRef.current) return;
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ categories, todos }));
   }, [categories, todos]);
 
