@@ -41,13 +41,13 @@ const formatLocalDate = (date = new Date()) => {
 
 const todayString = () => formatLocalDate();
 
-const createEmptyTodo = (categoryId = INBOX_ID) => ({
+const createEmptyTodo = (categoryId = INBOX_ID, dueDate = todayString()) => ({
   id: createId(),
   title: '',
   description: '',
   categoryId,
   priority: 'low',
-  dueDate: todayString(),
+  dueDate,
   completed: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -115,8 +115,8 @@ function sortTodos(todos, categories) {
   });
 }
 
-function isOverdue(todo) {
-  return Boolean(todo.dueDate && !todo.completed && todo.dueDate < todayString());
+function isOverdue(todo, currentDate) {
+  return Boolean(todo.dueDate && !todo.completed && todo.dueDate < currentDate);
 }
 
 function categoryColorClass(categories, categoryId) {
@@ -137,7 +137,35 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentDate, setCurrentDate] = useState(todayString);
   const isImportingRef = useRef(window.location.hash.startsWith(IMPORT_HASH_PREFIX));
+
+  useEffect(() => {
+    function refreshCurrentDate() {
+      setCurrentDate(todayString());
+    }
+
+    refreshCurrentDate();
+    const timerId = window.setInterval(refreshCurrentDate, 60 * 1000);
+    window.addEventListener('focus', refreshCurrentDate);
+    document.addEventListener('visibilitychange', refreshCurrentDate);
+
+    return () => {
+      window.clearInterval(timerId);
+      window.removeEventListener('focus', refreshCurrentDate);
+      document.removeEventListener('visibilitychange', refreshCurrentDate);
+    };
+  }, []);
+
+  useEffect(() => {
+    setDraftTodo((current) => {
+      if (current.title || current.description || current.dueDate === currentDate) {
+        return current;
+      }
+
+      return { ...current, dueDate: currentDate };
+    });
+  }, [currentDate]);
 
   useEffect(() => {
     const rawImport = window.location.hash.startsWith(IMPORT_HASH_PREFIX)
@@ -203,12 +231,12 @@ function App() {
         categoryId: draftTodo.categoryId,
         title,
         description: draftTodo.description.trim(),
-        dueDate: draftTodo.dueDate || todayString(),
+        dueDate: draftTodo.dueDate || currentDate,
         updatedAt: new Date().toISOString(),
       },
       ...current,
     ]);
-    setDraftTodo(createEmptyTodo(draftTodo.categoryId));
+    setDraftTodo(createEmptyTodo(draftTodo.categoryId, currentDate));
   }
 
   function updateTodo(todoId, patch) {
@@ -334,7 +362,7 @@ function App() {
         <div className="title-block">
           <h1 className="app-title">
             <span className="title-main">TodoList-个人任务工作台</span>
-            <span className="title-date">当前日期：{todayString()}</span>
+            <span className="title-date">当前日期：{currentDate}</span>
           </h1>
           <div className="overview">
             <button
@@ -391,7 +419,7 @@ function App() {
             />
             <DateField
               label="到期日期"
-              value={draftTodo.dueDate || todayString()}
+              value={draftTodo.dueDate || currentDate}
               onChange={(nextDate) => setDraftTodo((current) => ({ ...current, dueDate: nextDate }))}
             />
             <button type="submit">新增</button>
@@ -404,6 +432,7 @@ function App() {
               emptyText="还没有待办"
               label="进行中"
               todos={activeTodos}
+              currentDate={currentDate}
               updateTodo={updateTodo}
               deleteTodo={deleteTodo}
             />
@@ -415,6 +444,7 @@ function App() {
               label="已完成"
               muted
               todos={completedTodos}
+              currentDate={currentDate}
               updateTodo={updateTodo}
               deleteTodo={deleteTodo}
             />
@@ -455,7 +485,7 @@ function App() {
   );
 }
 
-function TaskGroup({ label, todos, categories, emptyText, muted = false, updateTodo, deleteTodo }) {
+function TaskGroup({ label, todos, categories, emptyText, muted = false, currentDate, updateTodo, deleteTodo }) {
   return (
     <section className={`task-group ${muted ? 'muted' : ''}`}>
       <div className="group-label">
@@ -512,11 +542,15 @@ function TaskGroup({ label, todos, categories, emptyText, muted = false, updateT
               />
               <DateField
                 label="编辑到期日"
-                overdue={isOverdue(todo)}
+                overdue={isOverdue(todo, currentDate)}
                 value={todo.dueDate}
                 onChange={(nextDate) => updateTodo(todo.id, { dueDate: nextDate })}
               />
-              {isOverdue(todo) ? <span className="overdue-label">过期</span> : <span className="overdue-spacer" />}
+              {isOverdue(todo, currentDate) ? (
+                <span className="overdue-label">过期</span>
+              ) : (
+                <span className="overdue-spacer" />
+              )}
               <button
                 aria-label="删除任务"
                 className="ghost-delete"
